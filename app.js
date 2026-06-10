@@ -141,4 +141,64 @@ clientForm.addEventListener('submit', async (e) => {
         clientForm.reset();
         loadClients(); 
     } catch (error) {
-        console.error("Error writing to Firestore:
+        console.error("Error writing to Firestore: ", error);
+        alert(`Database Error: ${error.message}\nMake sure your Firestore Rules allow writes!`);
+    }
+});
+
+// ==========================================
+// 7. DATABASE FUNCTIONS: LOAD CLIENTS
+// ==========================================
+async function loadClients() {
+    console.log("Loading client data...");
+    clientList.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading client data...</td></tr>';
+    clientsData = []; 
+    
+    try {
+        const q = query(collection(db, "clients"), orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
+        
+        querySnapshot.forEach((doc) => {
+            clientsData.push({ id: doc.id, ...doc.data() });
+        });
+        
+        console.log(`Loaded ${clientsData.length} clients.`);
+        renderTable(clientsData);
+    } catch (error) {
+        console.error("Error fetching clients:", error);
+        clientList.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Error loading data: ${error.message}</td></tr>`;
+    }
+}
+
+// ==========================================
+// 8. RENDER TABLE & SEARCH
+// ==========================================
+function renderTable(data) {
+    clientList.innerHTML = '';
+    
+    if (data.length === 0) {
+        clientList.innerHTML = '<tr><td colspan="5" style="text-align:center;">No clients found. Add one above!</td></tr>';
+        return;
+    }
+
+    data.forEach(client => {
+        const row = `<tr>
+            <td><strong>${client.name}</strong></td>
+            <td>${client.nric}</td>
+            <td>${client.dob}</td>
+            <td>${client.mobile}</td>
+            <td>${client.remarks}</td>
+        </tr>`;
+        clientList.innerHTML += row;
+    });
+}
+
+searchInput.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const filtered = clientsData.filter(c => 
+        (c.name && c.name.toLowerCase().includes(term)) || 
+        (c.nric && c.nric.includes(term)) || 
+        (c.mobile && c.mobile.includes(term))
+    );
+    renderTable(filtered);
+});
