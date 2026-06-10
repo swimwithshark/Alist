@@ -1,13 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A+ Client Roster</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+        .container { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        input, textarea, button { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
+        
+        /* General button styling */
+        button { background-color: #0056b3; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        button:hover { background-color: #004494; opacity: 0.9; }
+        
+        /* Specific button overrides */
+        #loginBtn { background-color: #4285F4; width: auto; padding: 10px 20px; color: white; }
+        #logoutBtn { background-color: #dc3545; width: auto; padding: 8px 15px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #333; color: white; }
+        
+        /* Helper classes */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- Authentication Section -->
     <div id="loginSection" class="container" style="text-align: center;">
         <h2>A+ Client Roster</h2>
         <p>Please sign in to access your client data.</p>
-        <button id="loginBtn" style="background-color: #4285F4; width: auto; padding: 10px 20px;">Sign in with Google</button>
+        <button id="loginBtn">Sign in with Google</button>
     </div>
 
-    <div id="appSection" style="display: none;">
+    <!-- Main Application (Hidden by default) -->
+    <div id="appSection" class="hidden">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h2>Client Roster Management</h2>
-            <button id="logoutBtn" style="background-color: #dc3545; width: auto; padding: 8px 15px;">Logout</button>
+            <button id="logoutBtn">Logout</button>
         </div>
         
+        <div class="container">
+            <h3>Add New A+ Client</h3>
+            <form id="clientForm">
+                <input type="text" id="name" placeholder="Client Name" required>
+                <input type="text" id="nric" placeholder="NRIC (e.g., 750101-14-5678)" required>
+                <input type="date" id="dob" required>
+                <input type="tel" id="mobile" placeholder="Mobile Number" required>
+                <input type="email" id="email" placeholder="Email Address">
+                <textarea id="remarks" placeholder="Remarks (e.g., Estate planning notes, product details)"></textarea>
+                <button type="submit">Save Client</button>
+            </form>
         </div>
+
+        <div class="container">
+            <h3>Search Clients</h3>
+            <input type="text" id="searchInput" placeholder="Search by Name, NRIC, or Mobile...">
+            
+            <table id="clientTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>NRIC</th>
+                        <th>DOB</th>
+                        <th>Mobile</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody id="clientList">
+                    <!-- Client rows will be injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Firebase App Logic -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
