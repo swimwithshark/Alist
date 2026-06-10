@@ -33,9 +33,13 @@ const clientList = document.getElementById('clientList');
 
 let clientsData = []; // Store fetched clients locally for search
 
-// 4. Authentication Logic
+// 1. UPDATE YOUR IMPORT AT THE VERY TOP to include getRedirectResult:
+import { getAuth, signInWithRedirect, GoogleAuthProvider, signOut, onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+// ... (keep your config and DOM elements the same) ...
+
+// 4. Updated Authentication Logic with Error Catching
 loginBtn.addEventListener('click', () => {
-    // Uses redirect method which is safer for mobile browsers (avoids popup blockers)
     signInWithRedirect(auth, provider);
 });
 
@@ -47,15 +51,26 @@ logoutBtn.addEventListener('click', async () => {
     }
 });
 
+// NEW: Catch errors specifically coming back from the Google Redirect
+getRedirectResult(auth)
+    .then((result) => {
+        if (result) {
+            console.log("Logged in via redirect successfully!", result.user);
+        }
+    })
+    .catch((error) => {
+        // This will pop up a window on your screen telling us the exact roadblock
+        alert(`Login Error Code: ${error.code}\nMessage: ${error.message}`);
+        console.error("Redirect Error Details:", error);
+    });
+
 // Monitor Login State
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // Logged in: Show app, hide login, load data
         loginSection.classList.add('hidden');
         appSection.classList.remove('hidden');
         loadClients(); 
     } else {
-        // Logged out: Show login, hide app, clear local data
         loginSection.classList.remove('hidden');
         appSection.classList.add('hidden');
         clientList.innerHTML = ''; 
