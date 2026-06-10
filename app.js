@@ -3,10 +3,11 @@
 // ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { getAuth, signInWithRedirect, GoogleAuthProvider, signOut, onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+// CHANGED: Using signInWithPopup instead of redirect methods
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // ==========================================
-// 2. FIREBASE CONFIGURATION (PASTE YOUR KEYS HERE)
+// 2. FIREBASE CONFIGURATION (PASTE YOUR REAL KEYS HERE)
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyBizwnFSAzmAPFVdHhSGnv9kzBqTrwBqAk",
@@ -41,18 +42,23 @@ const clientList = document.getElementById('clientList');
 let clientsData = []; 
 
 // ==========================================
-// 4. AUTHENTICATION LOGIC & DIAGNOSTICS
+// 4. AUTHENTICATION LOGIC (POPUP METHOD)
 // ==========================================
 
-// Trigger Google Sign-In
+// Trigger Google Sign-In via Popup
 loginBtn.addEventListener('click', () => {
-    console.log("Login button clicked. Redirecting to Google...");
-    loginBtn.innerText = "Redirecting...";
-    signInWithRedirect(auth, provider).catch((error) => {
-        console.error("Failed to start redirect:", error);
-        alert(`Failed to start login: ${error.message}`);
-        loginBtn.innerText = "Sign in with Google";
-    });
+    console.log("Login button clicked. Opening Google Popup...");
+    loginBtn.innerText = "Opening Popup...";
+    
+    signInWithPopup(auth, provider)
+        .then((result) => {
+            console.log("Logged in successfully via popup!", result.user);
+        })
+        .catch((error) => {
+            console.error("Popup Login Failed:", error);
+            alert("Login Error:\nCode: " + error.code + "\nMessage: " + error.message);
+            loginBtn.innerText = "Sign in with Google";
+        });
 });
 
 // Trigger Logout
@@ -65,35 +71,22 @@ logoutBtn.addEventListener('click', async () => {
     }
 });
 
-// DIAGNOSTIC: Catch errors returning from Google
-getRedirectResult(auth)
-    .then((result) => {
-        if (result) {
-            console.log("Successful return from Google Redirect!", result.user);
-        }
-    })
-    .catch((error) => {
-        console.error("Error returning from Google Redirect:", error);
-        alert(`Firebase Auth Error:\nCode: ${error.code}\nMessage: ${error.message}`);
-        loginBtn.innerText = "Sign in with Google";
-    });
-
 // Master Observer: Watches to see if user is logged in or out
 onAuthStateChanged(auth, (user) => {
     console.log("Auth State Changed. Current User:", user ? user.email : "None");
     
     if (user) {
-        // User is LOGGED IN
+        // User is LOGGED IN: Reveal the app, hide login panel
         loginSection.classList.add('hidden');
         appSection.classList.remove('hidden');
         loadClients(); 
     } else {
-        // User is LOGGED OUT
+        // User is LOGGED OUT: Show login panel, lock down view
         loginSection.classList.remove('hidden');
         appSection.classList.add('hidden');
-        clientList.innerHTML = ''; 
+        clientList.innerHTML = ""; 
         clientsData = [];
-        loginBtn.innerText = "Sign in with Google"; // Reset button text
+        loginBtn.innerText = "Sign in with Google"; 
     }
 });
 
@@ -110,7 +103,13 @@ nricInput.addEventListener('input', (e) => {
         
         const currentYear2Digits = new Date().getFullYear() % 100;
         const century = yy > currentYear2Digits ? '19' : '20';
-        const formattedDOB = `${century}${yy.toString().padStart(2, '0')}-${mm}-${dd}`;
+        
+        let yyString = yy.toString();
+        if (yyString.length === 1) {
+            yyString = '0' + yyString;
+        }
+        
+        const formattedDOB = century + yyString + "-" + mm + "-" + dd;
         
         if (parseInt(mm) > 0 && parseInt(mm) <= 12 && parseInt(dd) > 0 && parseInt(dd) <= 31) {
             dobInput.value = formattedDOB;
@@ -143,7 +142,7 @@ clientForm.addEventListener('submit', async (e) => {
         loadClients(); 
     } catch (error) {
         console.error("Error writing to Firestore: ", error);
-        alert(`Database Error: ${error.message}\nMake sure your Firestore Rules allow writes!`);
+        alert("Database Error: " + error.message + "\nMake sure your Firestore Rules allow writes!");
     }
 });
 
@@ -152,7 +151,7 @@ clientForm.addEventListener('submit', async (e) => {
 // ==========================================
 async function loadClients() {
     console.log("Loading client data...");
-    clientList.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading client data...</td></tr>';
+    clientList.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Loading client data...</td></tr>";
     clientsData = []; 
     
     try {
@@ -163,11 +162,11 @@ async function loadClients() {
             clientsData.push({ id: doc.id, ...doc.data() });
         });
         
-        console.log(`Loaded ${clientsData.length} clients.`);
+        console.log("Loaded " + clientsData.length + " clients.");
         renderTable(clientsData);
     } catch (error) {
         console.error("Error fetching clients:", error);
-        clientList.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Error loading data: ${error.message}</td></tr>`;
+        clientList.innerHTML = "<tr><td colspan='5' style='color:red; text-align:center;'>Error loading data: " + error.message + "</td></tr>";
     }
 }
 
@@ -175,21 +174,21 @@ async function loadClients() {
 // 8. RENDER TABLE & SEARCH
 // ==========================================
 function renderTable(data) {
-    clientList.innerHTML = '';
+    clientList.innerHTML = "";
     
     if (data.length === 0) {
-        clientList.innerHTML = '<tr><td colspan="5" style="text-align:center;">No clients found. Add one above!</td></tr>';
+        clientList.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No clients found. Add one above!</td></tr>";
         return;
     }
 
     data.forEach(client => {
-        const row = `<tr>
-            <td><strong>${client.name}</strong></td>
-            <td>${client.nric}</td>
-            <td>${client.dob}</td>
-            <td>${client.mobile}</td>
-            <td>${client.remarks}</td>
-        </tr>`;
+        const row = "<tr>" +
+            "<td><strong>" + client.name + "</strong></td>" +
+            "<td>" + client.nric + "</td>" +
+            "<td>" + client.dob + "</td>" +
+            "<td>" + client.mobile + "</td>" +
+            "<td>" + client.remarks + "</td>" +
+        "</tr>";
         clientList.innerHTML += row;
     });
 }
