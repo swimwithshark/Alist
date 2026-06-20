@@ -10,12 +10,12 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChang
 // 2. FIREBASE CONFIGURATION (PASTE YOUR KEYS HERE)
 // ==========================================
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBizwnFSAzmAPFVdHhSGnv9kzBqTrwBqAk",
+  authDomain: "alist-d2daf.firebaseapp.com",
+  projectId: "alist-d2daf",
+  storageBucket: "alist-d2daf.firebasestorage.app",
+  messagingSenderId: "496087358090",
+  appId: "1:496087358090:web:a38a738717c8082648eb73"
 };
 
 // Initialize Firebase Services
