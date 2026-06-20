@@ -2,22 +2,21 @@
 // 1. FIREBASE IMPORTS (Modular v10)
 // ==========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-// CHANGED: Using signInWithPopup instead of redirect methods
+// Added 'where' to filter database queries
+import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // ==========================================
-// 2. FIREBASE CONFIGURATION (PASTE YOUR REAL KEYS HERE)
+// 2. FIREBASE CONFIGURATION (PASTE YOUR KEYS HERE)
 // ==========================================
 const firebaseConfig = {
-  apiKey: "AIzaSyBizwnFSAzmAPFVdHhSGnv9kzBqTrwBqAk",
-  authDomain: "alist-d2daf.firebaseapp.com",
-  projectId: "alist-d2daf",
-  storageBucket: "alist-d2daf.firebasestorage.app",
-  messagingSenderId: "496087358090",
-  appId: "1:496087358090:web:a38a738717c8082648eb73"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
-
 
 // Initialize Firebase Services
 const app = initializeApp(firebaseConfig);
@@ -42,22 +41,19 @@ const clientList = document.getElementById('clientList');
 let clientsData = []; 
 
 // ==========================================
-// 4. AUTHENTICATION LOGIC (POPUP METHOD)
+// 4. AUTHENTICATION LOGIC
 // ==========================================
 
-// Trigger Google Sign-In via Popup
+// Trigger Google Sign-In with a Popup
 loginBtn.addEventListener('click', () => {
-    console.log("Login button clicked. Opening Google Popup...");
-    loginBtn.innerText = "Opening Popup...";
-    
+    console.log("Opening Google Sign-In popup...");
     signInWithPopup(auth, provider)
         .then((result) => {
-            console.log("Logged in successfully via popup!", result.user);
+            console.log("Logged in successfully:", result.user.email);
         })
         .catch((error) => {
-            console.error("Popup Login Failed:", error);
-            alert("Login Error:\nCode: " + error.code + "\nMessage: " + error.message);
-            loginBtn.innerText = "Sign in with Google";
+            console.error("Login Failed:", error.code);
+            alert("Login Error: " + error.message);
         });
 });
 
@@ -76,17 +72,16 @@ onAuthStateChanged(auth, (user) => {
     console.log("Auth State Changed. Current User:", user ? user.email : "None");
     
     if (user) {
-        // User is LOGGED IN: Reveal the app, hide login panel
+        // User is LOGGED IN
         loginSection.classList.add('hidden');
         appSection.classList.remove('hidden');
         loadClients(); 
     } else {
-        // User is LOGGED OUT: Show login panel, lock down view
+        // User is LOGGED OUT
         loginSection.classList.remove('hidden');
         appSection.classList.add('hidden');
         clientList.innerHTML = ""; 
         clientsData = [];
-        loginBtn.innerText = "Sign in with Google"; 
     }
 });
 
@@ -123,7 +118,14 @@ nricInput.addEventListener('input', (e) => {
 clientForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // Safety check to ensure a user is logged in
+    if (!auth.currentUser) {
+        alert("You must be logged in to save data.");
+        return;
+    }
+
     const newClient = {
+        userId: auth.currentUser.uid, // NEW: Stamped ownership of this document
         name: document.getElementById('name').value,
         nric: nricInput.value,
         dob: dobInput.value,
@@ -135,14 +137,14 @@ clientForm.addEventListener('submit', async (e) => {
     };
 
     try {
-        console.log("Attempting to save client to Firestore...");
+        console.log("Saving client data under User UID:", auth.currentUser.uid);
         await addDoc(collection(db, "clients"), newClient);
         alert("Client saved successfully!");
         clientForm.reset();
         loadClients(); 
     } catch (error) {
         console.error("Error writing to Firestore: ", error);
-        alert("Database Error: " + error.message + "\nMake sure your Firestore Rules allow writes!");
+        alert("Database Error: " + error.message);
     }
 });
 
@@ -150,19 +152,33 @@ clientForm.addEventListener('submit', async (e) => {
 // 7. DATABASE FUNCTIONS: LOAD CLIENTS
 // ==========================================
 async function loadClients() {
-    console.log("Loading client data...");
-    clientList.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Loading client data...</td></tr>";
+    if (!auth.currentUser) return;
+
+    console.log("Loading client data for user:", auth.currentUser.email);
+    clientList.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Loading your roster...</td></tr>";
     clientsData = []; 
     
     try {
-        const q = query(collection(db, "clients"), orderBy("timestamp", "desc"));
+        // NEW: Only query items where 'userId' equals the logged-in user's unique ID
+        const q = query(
+            collection(db, "clients"), 
+            where("userId", "==", auth.currentUser.uid)
+        );
+        
         const querySnapshot = await getDocs(q);
         
         querySnapshot.forEach((doc) => {
             clientsData.push({ id: doc.id, ...doc.data() });
         });
         
-        console.log("Loaded " + clientsData.length + " clients.");
+        // Sort data locally by timestamp (newest first) to avoid index setup rules in Firebase Console
+        clientsData.sort((a, b) => {
+            const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+            const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+            return timeB - timeA;
+        });
+
+        console.log("Successfully loaded " + clientsData.length + " personal records.");
         renderTable(clientsData);
     } catch (error) {
         console.error("Error fetching clients:", error);
